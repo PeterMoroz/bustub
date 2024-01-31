@@ -26,6 +26,17 @@ namespace bustub {
 enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 
 class LRUKNode {
+
+public:
+  LRUKNode(size_t k, frame_id_t fid);
+
+  void SetEvictable(bool is_evictable) { is_evictable_ = is_evictable; }
+  bool GetEvictable() const { return is_evictable_; }
+
+  void RecordAccess(size_t timestamp);
+  size_t GetKDistance(size_t curr_timestamp) const;
+  size_t GetLeastRecentAccessTime() const;
+
  private:
   /** History of last seen K timestamps of this page. Least recent timestamp stored in front. */
   // Remove maybe_unused if you start using them. Feel free to change the member variables as you want.
@@ -146,6 +157,10 @@ class LRUKReplacer {
    * @return size_t
    */
   auto Size() -> size_t;
+
+private:
+  auto EvictLRU(frame_id_t *frame_id) -> bool;
+
 
  private:
   // TODO(student): implement me! You can replace these member variables as you like.

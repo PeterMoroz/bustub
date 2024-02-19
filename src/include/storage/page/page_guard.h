@@ -17,7 +17,7 @@ class BasicPageGuard {
   BasicPageGuard(const BasicPageGuard &) = delete;
   auto operator=(const BasicPageGuard &) -> BasicPageGuard & = delete;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move constructor for BasicPageGuard
    *
@@ -29,7 +29,7 @@ class BasicPageGuard {
    */
   BasicPageGuard(BasicPageGuard &&that) noexcept;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Drop a page guard
    *
@@ -40,7 +40,7 @@ class BasicPageGuard {
    */
   void Drop();
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move assignment for BasicPageGuard
    *
@@ -61,7 +61,7 @@ class BasicPageGuard {
    */
   ~BasicPageGuard();
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Upgrade a BasicPageGuard to a ReadPageGuard
    *
@@ -72,7 +72,7 @@ class BasicPageGuard {
    */
   auto UpgradeRead() -> ReadPageGuard;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Upgrade a BasicPageGuard to a WritePageGuard
    *
@@ -122,7 +122,7 @@ class ReadPageGuard {
   ReadPageGuard(const ReadPageGuard &) = delete;
   auto operator=(const ReadPageGuard &) -> ReadPageGuard & = delete;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move constructor for ReadPageGuard
    *
@@ -132,7 +132,7 @@ class ReadPageGuard {
    */
   ReadPageGuard(ReadPageGuard &&that) noexcept;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move assignment for ReadPageGuard
    *
@@ -141,7 +141,7 @@ class ReadPageGuard {
    */
   auto operator=(ReadPageGuard &&that) noexcept -> ReadPageGuard &;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Drop a ReadPageGuard
    *
@@ -152,7 +152,7 @@ class ReadPageGuard {
    */
   void Drop();
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Destructor for ReadPageGuard
    *
@@ -186,7 +186,7 @@ class WritePageGuard {
   WritePageGuard(const WritePageGuard &) = delete;
   auto operator=(const WritePageGuard &) -> WritePageGuard & = delete;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move constructor for WritePageGuard
    *
@@ -196,7 +196,7 @@ class WritePageGuard {
    */
   WritePageGuard(WritePageGuard &&that) noexcept;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Move assignment for WritePageGuard
    *
@@ -205,7 +205,7 @@ class WritePageGuard {
    */
   auto operator=(WritePageGuard &&that) noexcept -> WritePageGuard &;
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Drop a WritePageGuard
    *
@@ -216,7 +216,7 @@ class WritePageGuard {
    */
   void Drop();
 
-  /** TODO(P2): Add implementation
+  /** TODO(P1): Add implementation
    *
    * @brief Destructor for WritePageGuard
    *

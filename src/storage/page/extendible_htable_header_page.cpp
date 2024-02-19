@@ -17,10 +17,12 @@
 namespace bustub {
 
 void ExtendibleHTableHeaderPage::Init(uint32_t max_depth) {
-  throw NotImplementedException("ExtendibleHTableHeaderPage is not implemented");
+  max_depth_ = max_depth;
 }
 
-auto ExtendibleHTableHeaderPage::HashToDirectoryIndex(uint32_t hash) const -> uint32_t { return 0; }
+auto ExtendibleHTableHeaderPage::HashToDirectoryIndex(uint32_t hash) const -> uint32_t { 
+  return hash >> ((sizeof(hash) << 3) - max_depth_);
+}
 
 auto ExtendibleHTableHeaderPage::GetDirectoryPageId(uint32_t directory_idx) const -> uint32_t { return 0; }
 

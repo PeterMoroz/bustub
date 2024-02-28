@@ -93,6 +93,13 @@ auto BufferPoolManager::FetchPage(page_id_t page_id, [[maybe_unused]] AccessType
   auto it = page_table_.find(page_id);
   if (it != page_table_.cend()) {
     frame_id = it->second;
+    Page *page = &pages_[frame_id];
+    page->pin_count_++;
+    // page->page_id_ = page_id;
+    BUSTUB_ASSERT(page->page_id_ == page_id, " mismatch of page id ");
+    replacer_->RecordAccess(frame_id);
+    replacer_->SetEvictable(frame_id, false);
+    return page;
   } else if (!free_list_.empty()) {
     frame_id = free_list_.front();
     free_list_.pop_front();

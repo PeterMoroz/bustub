@@ -22,6 +22,9 @@ template <typename K, typename V, typename KC>
 void ExtendibleHTableBucketPage<K, V, KC>::Init(uint32_t max_size) {
   size_ = 0;
   max_size_ = max_size;
+  for (size_t i = 0; i < max_size; i++) {
+    array_[i] = {};
+  }
 }
 
 template <typename K, typename V, typename KC>
@@ -74,9 +77,7 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Insert(const K &key, const V &value, 
 
     uint32_t pos = size_;
     if (bsearch(key, cmp, &pos)) {
-      BUSTUB_ASSERT(pos < size_, "insert position is out of bound");
-      array_[pos].second = value;
-      return true;
+      return false;
     } else {
       uint32_t idx = size_;
       while (idx > pos) {
@@ -128,7 +129,16 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Remove(const K &key, const KC &cmp) -
 
 template <typename K, typename V, typename KC>
 void ExtendibleHTableBucketPage<K, V, KC>::RemoveAt(uint32_t bucket_idx) {
-  throw NotImplementedException("ExtendibleHTableBucketPage not implemented");
+  if (bucket_idx < size_) {
+    if (bucket_idx < size_ - 1) {
+      uint32_t idx = bucket_idx;
+      while (idx + 1 < size_) {
+        array_[idx] = array_[idx + 1];
+        idx++;
+      }
+    }
+    size_--;
+  }
 }
 
 template <typename K, typename V, typename KC>

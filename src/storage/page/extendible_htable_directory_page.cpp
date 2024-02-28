@@ -23,7 +23,7 @@ namespace bustub {
 void ExtendibleHTableDirectoryPage::Init(uint32_t max_depth) {
   max_depth_ = max_depth;
   global_depth_ = 0;
-  for (uint32_t i = 0; i < HTABLE_DIRECTORY_ARRAY_SIZE; i++) {
+  for (size_t i = 0; i < HTABLE_DIRECTORY_ARRAY_SIZE; i++) {
     local_depths_[i] = 0;
     bucket_page_ids_[i] = INVALID_PAGE_ID;
   }
@@ -53,24 +53,43 @@ void ExtendibleHTableDirectoryPage::SetBucketPageId(uint32_t bucket_idx, page_id
   bucket_page_ids_[bucket_idx] = bucket_page_id;
 }
 
-auto ExtendibleHTableDirectoryPage::GetSplitImageIndex(uint32_t bucket_idx) const -> uint32_t { return 0; }
+auto ExtendibleHTableDirectoryPage::GetSplitImageIndex(uint32_t bucket_idx) const -> uint32_t { 
+  const uint8_t depth = local_depths_[bucket_idx];
+  return bucket_idx ^ (1 << (depth - 1));
+}
 
-auto ExtendibleHTableDirectoryPage::GetGlobalDepth() const -> uint32_t { return 0; }
+// auto ExtendibleHTableDirectoryPage::GetLocalDepthMask(uint32_t bucket_idx) const -> uint32_t {
+//   const uint8_t depth = local_depths_[bucket_idx];
+//   return (1 << depth) - 1;
+// }
+
+auto ExtendibleHTableDirectoryPage::GetGlobalDepth() const -> uint32_t { return global_depth_; }
+
+auto ExtendibleHTableDirectoryPage::GetMaxDepth() const -> uint32_t { return max_depth_; }
 
 void ExtendibleHTableDirectoryPage::IncrGlobalDepth() {
-  global_depth_++;
-  const uint32_t size = Size();
-  if (size == 2) {
-    local_depths_[1] = local_depths_[0];
-    bucket_page_ids_[1] = bucket_page_ids_[0];
-  } else {
-    uint32_t i = 0;
-    uint32_t j = size >> 1;
-    for (; j < size; i++, j++) {
-      local_depths_[j] = local_depths_[i];
-      bucket_page_ids_[j] = bucket_page_ids_[i];
-    }
+  // global_depth_++;
+  // const uint32_t size = Size();
+  // if (size == 2) {
+  //   local_depths_[1] = local_depths_[0];
+  //   bucket_page_ids_[1] = bucket_page_ids_[0];
+  // } else {
+  //   uint32_t i = 0;
+  //   uint32_t j = size >> 1;
+  //   for (; j < size; i++, j++) {
+  //     local_depths_[j] = local_depths_[i];
+  //     bucket_page_ids_[j] = bucket_page_ids_[i];
+  //   }
+  // }
+  BUSTUB_ASSERT(global_depth_ < max_depth_, "global depth has reached the maximal value");
+  const uint32_t origin_size = Size();
+  uint32_t idx = origin_size;
+  uint32_t origin_idx = 0;
+  for (; origin_idx < origin_size; origin_idx++, idx++) {
+    local_depths_[idx] = local_depths_[origin_idx];
+    bucket_page_ids_[idx] = bucket_page_ids_[origin_idx];
   }
+  global_depth_++;
 }
 
 void ExtendibleHTableDirectoryPage::DecrGlobalDepth() {
@@ -78,11 +97,25 @@ void ExtendibleHTableDirectoryPage::DecrGlobalDepth() {
 }
 
 auto ExtendibleHTableDirectoryPage::CanShrink() -> bool { 
+  // const uint32_t size = Size();
+  // for (uint32_t i = 0; i < size; i++) {
+  //   if (local_depths_[i] == global_depth_) {
+  //     return false;
+  //   }
+  // }
+  // return true;
+
   const uint32_t size = Size();
-  for (uint32_t i = 0; i < size; i++) {
-    if (local_depths_[i] == global_depth_) {
-      return false;
-    }
+  if (size < 2) {
+    return false;
+  }
+  const uint32_t half_size = size >> 1;
+  uint32_t i = 0, j = half_size;
+  for (; i < half_size && j < size; i++, j++) {
+    if ((local_depths_[i] != local_depths_[j]) || 
+      (bucket_page_ids_[i] != bucket_page_ids_[j])) {
+        return false;
+      }
   }
   return true;
 }
@@ -107,10 +140,6 @@ void ExtendibleHTableDirectoryPage::IncrLocalDepth(uint32_t bucket_idx) {
 void ExtendibleHTableDirectoryPage::DecrLocalDepth(uint32_t bucket_idx) {
   BUSTUB_ASSERT(bucket_idx < HTABLE_DIRECTORY_ARRAY_SIZE, "bucket_idx is out of range");
   local_depths_[bucket_idx]--;
-}
-
-void ExtendibleHTableDirectoryPage::VerifyIntegrity() const {
-
 }
 
 }  // namespace bustub

@@ -54,7 +54,7 @@ DiskExtendibleHashTable<K, V, KC>::DiskExtendibleHashTable(const std::string &na
 template <typename K, typename V, typename KC>
 auto DiskExtendibleHashTable<K, V, KC>::GetValue(const K &key, std::vector<V> *result, Transaction *transaction) const
     -> bool {
-  BasicPageGuard header_guard = bpm_->FetchPageBasic(header_page_id_);
+  ReadPageGuard header_guard = bpm_->FetchPageRead(header_page_id_);
   auto header_page = header_guard.As<ExtendibleHTableHeaderPage>();
   const uint32_t hash = Hash(key);
   const uint32_t directory_idx = header_page->HashToDirectoryIndex(hash);
@@ -63,7 +63,7 @@ auto DiskExtendibleHashTable<K, V, KC>::GetValue(const K &key, std::vector<V> *r
     return false;
   }
 
-  BasicPageGuard directory_guard = bpm_->FetchPageBasic(directory_page_id);
+  ReadPageGuard directory_guard = bpm_->FetchPageRead(directory_page_id);
   auto directory_page = directory_guard.As<ExtendibleHTableDirectoryPage>();
   const uint32_t bucket_idx = directory_page->HashToBucketIndex(hash);
   const page_id_t bucket_page_id = directory_page->GetBucketPageId(bucket_idx);
@@ -71,7 +71,7 @@ auto DiskExtendibleHashTable<K, V, KC>::GetValue(const K &key, std::vector<V> *r
     return false;
   }
 
-  BasicPageGuard bucket_guard = bpm_->FetchPageBasic(bucket_page_id);
+  ReadPageGuard bucket_guard = bpm_->FetchPageRead(bucket_page_id);
   auto bucket_page = bucket_guard.As<ExtendibleHTableBucketPage<K, V, KC>>();
 
   V value;
@@ -89,7 +89,7 @@ auto DiskExtendibleHashTable<K, V, KC>::GetValue(const K &key, std::vector<V> *r
 
 template <typename K, typename V, typename KC>
 auto DiskExtendibleHashTable<K, V, KC>::Insert(const K &key, const V &value, Transaction *transaction) -> bool {
-  BasicPageGuard header_guard = bpm_->FetchPageBasic(header_page_id_);
+  WritePageGuard header_guard = bpm_->FetchPageWrite(header_page_id_);
   auto header_page = header_guard.AsMut<ExtendibleHTableHeaderPage>();
   const uint32_t hash = Hash(key);
   const uint32_t directory_idx = header_page->HashToDirectoryIndex(hash);
@@ -101,14 +101,15 @@ auto DiskExtendibleHashTable<K, V, KC>::InsertToNewDirectory(ExtendibleHTableHea
                                                              uint32_t hash, const K &key, const V &value) -> bool {
 
   page_id_t directory_page_id = header->GetDirectoryPageId(directory_idx);
-  BasicPageGuard directory_guard;
+  WritePageGuard directory_guard;
   if (directory_page_id == INVALID_PAGE_ID) {
-    directory_guard = bpm_->NewPageGuarded(&directory_page_id);
+    BasicPageGuard guard = bpm_->NewPageGuarded(&directory_page_id);
+    directory_guard = guard.UpgradeWrite();
     auto directory_page = directory_guard.AsMut<ExtendibleHTableDirectoryPage>();
     directory_page->Init(directory_max_depth_);
     header->SetDirectoryPageId(directory_idx, directory_page_id);
   } else {
-    directory_guard = bpm_->FetchPageBasic(directory_page_id);
+    directory_guard = bpm_->FetchPageWrite(directory_page_id);
   }
 
   auto directory_page = directory_guard.AsMut<ExtendibleHTableDirectoryPage>();
@@ -122,16 +123,17 @@ auto DiskExtendibleHashTable<K, V, KC>::InsertToNewBucket(ExtendibleHTableDirect
                                                           const K &key, const V &value) -> bool {
 
   page_id_t bucket_page_id = directory->GetBucketPageId(bucket_idx);
-  BasicPageGuard bucket_guard;
+  WritePageGuard bucket_guard;
   if (bucket_page_id == INVALID_PAGE_ID) {
-    bucket_guard = bpm_->NewPageGuarded(&bucket_page_id);
+    BasicPageGuard guard = bpm_->NewPageGuarded(&bucket_page_id);
+    bucket_guard = guard.UpgradeWrite();
     auto bucket_page = bucket_guard.AsMut<ExtendibleHTableBucketPage<K, V, KC>>();
     bucket_page->Init(bucket_max_size_);
     // directory->SetBucketPageId(bucket_idx, bucket_page_id);
     // directory->SetLocalDepth(bucket_idx, 0);
     UpdateDirectoryMapping(directory, bucket_idx, bucket_page_id, 0, 0 /* ignored*/);
   } else {
-    bucket_guard = bpm_->FetchPageBasic(bucket_page_id);
+    bucket_guard = bpm_->FetchPageWrite(bucket_page_id);
   }
 
   auto bucket_page = bucket_guard.AsMut<ExtendibleHTableBucketPage<K, V, KC>>();
@@ -149,7 +151,8 @@ auto DiskExtendibleHashTable<K, V, KC>::InsertToNewBucket(ExtendibleHTableDirect
     }
 
     page_id_t split_page_id = INVALID_PAGE_ID;
-    BasicPageGuard split_guard = bpm_->NewPageGuarded(&split_page_id);
+    BasicPageGuard guard = bpm_->NewPageGuarded(&split_page_id);
+    WritePageGuard split_guard = guard.UpgradeWrite();
     auto split_page = split_guard.AsMut<ExtendibleHTableBucketPage<K, V, KC>>();
     split_page->Init(bucket_max_size_);
 
@@ -191,7 +194,7 @@ void DiskExtendibleHashTable<K, V, KC>::UpdateDirectoryMapping(ExtendibleHTableD
  *****************************************************************************/
 template <typename K, typename V, typename KC>
 auto DiskExtendibleHashTable<K, V, KC>::Remove(const K &key, Transaction *transaction) -> bool {
-  BasicPageGuard header_guard = bpm_->FetchPageBasic(header_page_id_);
+  WritePageGuard header_guard = bpm_->FetchPageWrite(header_page_id_);
   auto header_page = header_guard.AsMut<ExtendibleHTableHeaderPage>();
   const uint32_t hash = Hash(key);
   const uint32_t directory_idx = header_page->HashToDirectoryIndex(hash);
@@ -200,7 +203,7 @@ auto DiskExtendibleHashTable<K, V, KC>::Remove(const K &key, Transaction *transa
     return false;
   }
 
-  BasicPageGuard directory_guard = bpm_->FetchPageBasic(directory_page_id);
+  WritePageGuard directory_guard = bpm_->FetchPageWrite(directory_page_id);
   auto directory_page = directory_guard.AsMut<ExtendibleHTableDirectoryPage>();
   const uint32_t bucket_idx = directory_page->HashToBucketIndex(hash);
   const page_id_t bucket_page_id = directory_page->GetBucketPageId(bucket_idx);
@@ -208,7 +211,7 @@ auto DiskExtendibleHashTable<K, V, KC>::Remove(const K &key, Transaction *transa
     return false;
   }
 
-  BasicPageGuard bucket_guard = bpm_->FetchPageBasic(bucket_page_id);
+  WritePageGuard bucket_guard = bpm_->FetchPageWrite(bucket_page_id);
   auto bucket_page = bucket_guard.AsMut<ExtendibleHTableBucketPage<K, V, KC>>();
   if (!bucket_page->Remove(key, cmp_)) {
     return false;

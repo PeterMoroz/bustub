@@ -132,6 +132,13 @@ class ExtendibleHTableBucketPage {
   void PrintBucket() const;
 
  private:
+  /**
+   * Search the entry with a specified key using binary search.
+   * @return whether entry is found or not
+   */
+  auto bsearch(const KeyType &key, const KeyComparator &cmp, uint32_t *pos) const -> bool;
+
+ private:
   uint32_t size_;
   uint32_t max_size_;
   MappingType array_[HTableBucketArraySize(sizeof(MappingType))];

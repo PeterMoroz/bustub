@@ -92,6 +92,13 @@ auto BufferPoolManager::FetchPage(page_id_t page_id, [[maybe_unused]] AccessType
   auto it = page_table_.find(page_id);
   if (it != page_table_.cend()) {
     frame_id = it->second;
+    Page *page = &pages_[frame_id];
+    page->pin_count_++;
+    // page->page_id_ = page_id;
+    BUSTUB_ASSERT(page->page_id_ == page_id, " mismatch of page id ");
+    replacer_->RecordAccess(frame_id);
+    replacer_->SetEvictable(frame_id, false);
+    return page;
   } else if (!free_list_.empty()) {
     frame_id = free_list_.front();
     free_list_.pop_front();
@@ -127,7 +134,7 @@ auto BufferPoolManager::FetchPage(page_id_t page_id, [[maybe_unused]] AccessType
   auto future = promise.get_future();
   char data[BUSTUB_PAGE_SIZE] = {0};
   disk_scheduler_->Schedule({false, data, page_id, std::move(promise)});
-  BUSTUB_ENSURE(future.get(), "the page write request could not complete");
+  BUSTUB_ENSURE(future.get(), "the page read request could not complete");
 
   BUSTUB_ASSERT(static_cast<size_t>(frame_id) < pool_size_, "the frame id is too large");
   Page *page = &pages_[frame_id];
@@ -182,7 +189,7 @@ void BufferPoolManager::FlushAllPages() {
   std::lock_guard<std::mutex> lock(latch_);
   for (const auto &[page_id, frame_id] : page_table_) {
     Page *page = &pages_[frame_id];
-    BUSTUB_ASSERT(page->page_id_ != page_id, "mismatch of page ids");
+    BUSTUB_ASSERT(page->page_id_ == page_id, "mismatch of page ids");
     auto promise = disk_scheduler_->CreatePromise();
     auto future = promise.get_future();
     disk_scheduler_->Schedule({true, page->data_, page->page_id_, std::move(promise)});

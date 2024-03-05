@@ -21,7 +21,6 @@ namespace bustub {
 BufferPoolManager::BufferPoolManager(size_t pool_size, DiskManager *disk_manager, size_t replacer_k,
                                      LogManager *log_manager)
     : pool_size_(pool_size), disk_scheduler_(std::make_unique<DiskScheduler>(disk_manager)), log_manager_(log_manager) {
-
   // we allocate a consecutive memory space for the buffer pool
   pages_ = new Page[pool_size_];
   replacer_ = std::make_unique<LRUKReplacer>(pool_size, replacer_k);
@@ -34,7 +33,7 @@ BufferPoolManager::BufferPoolManager(size_t pool_size, DiskManager *disk_manager
 
 BufferPoolManager::~BufferPoolManager() { delete[] pages_; }
 
-auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * { 
+auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
   std::lock_guard<std::mutex> lock(latch_);
   frame_id_t frame_id{};
   if (!free_list_.empty()) {
@@ -63,7 +62,7 @@ auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
     }
 
     page_id_t tmp_page_id = INVALID_PAGE_ID;
-    for (const auto& [key, value] : page_table_) {
+    for (const auto &[key, value] : page_table_) {
       if (value == frame_id) {
         tmp_page_id = key;
         break;
@@ -81,7 +80,7 @@ auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
     page->page_id_ = *page_id;
     page->pin_count_ = 1;
     page->ResetMemory();
-    return page;    
+    return page;
   }
 
   return nullptr;
@@ -89,7 +88,7 @@ auto BufferPoolManager::NewPage(page_id_t *page_id) -> Page * {
 
 auto BufferPoolManager::FetchPage(page_id_t page_id, [[maybe_unused]] AccessType access_type) -> Page * {
   std::lock_guard<std::mutex> lock(latch_);
-  frame_id_t frame_id{};  
+  frame_id_t frame_id{};
   auto it = page_table_.find(page_id);
   if (it != page_table_.cend()) {
     frame_id = it->second;
@@ -112,10 +111,10 @@ auto BufferPoolManager::FetchPage(page_id_t page_id, [[maybe_unused]] AccessType
         auto future = promise.get_future();
         disk_scheduler_->Schedule({true, page->data_, page->page_id_, std::move(promise)});
         BUSTUB_ENSURE(future.get(), "the page write request could not complete");
-      }      
+      }
 
       page_id_t tmp_page_id = INVALID_PAGE_ID;
-      for (const auto& [key, value] : page_table_) {
+      for (const auto &[key, value] : page_table_) {
         if (value == frame_id) {
           tmp_page_id = key;
           break;
@@ -167,7 +166,7 @@ auto BufferPoolManager::UnpinPage(page_id_t page_id, bool is_dirty, [[maybe_unus
   return false;
 }
 
-auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool { 
+auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
   std::lock_guard<std::mutex> lock(latch_);
   auto it = page_table_.find(page_id);
   if (it == page_table_.cend()) {
@@ -182,13 +181,13 @@ auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool {
   disk_scheduler_->Schedule({true, page->data_, page->page_id_, std::move(promise)});
   BUSTUB_ENSURE(future.get(), "the page write request could not complete");
   page->is_dirty_ = false;
-  
+
   return true;
 }
 
 void BufferPoolManager::FlushAllPages() {
   std::lock_guard<std::mutex> lock(latch_);
-  for (const auto& [page_id, frame_id] : page_table_) {
+  for (const auto &[page_id, frame_id] : page_table_) {
     Page *page = &pages_[frame_id];
     BUSTUB_ASSERT(page->page_id_ == page_id, "mismatch of page ids");
     auto promise = disk_scheduler_->CreatePromise();
@@ -221,20 +220,12 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
 
 auto BufferPoolManager::AllocatePage() -> page_id_t { return next_page_id_++; }
 
-auto BufferPoolManager::FetchPageBasic(page_id_t page_id) -> BasicPageGuard {
-  return {this, FetchPage(page_id)};
-}
+auto BufferPoolManager::FetchPageBasic(page_id_t page_id) -> BasicPageGuard { return {this, FetchPage(page_id)}; }
 
-auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard {
-  return {this, FetchPage(page_id)};
-}
+auto BufferPoolManager::FetchPageRead(page_id_t page_id) -> ReadPageGuard { return {this, FetchPage(page_id)}; }
 
-auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard {
-  return {this, FetchPage(page_id)};
-}
+auto BufferPoolManager::FetchPageWrite(page_id_t page_id) -> WritePageGuard { return {this, FetchPage(page_id)}; }
 
-auto BufferPoolManager::NewPageGuarded(page_id_t *page_id) -> BasicPageGuard {
-  return {this, NewPage(page_id)};
-}
+auto BufferPoolManager::NewPageGuarded(page_id_t *page_id) -> BasicPageGuard { return {this, NewPage(page_id)}; }
 
 }  // namespace bustub

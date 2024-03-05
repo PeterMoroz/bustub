@@ -26,8 +26,7 @@ namespace bustub {
 enum class AccessType { Unknown = 0, Lookup, Scan, Index };
 
 class LRUKNode {
-
-public:
+ public:
   LRUKNode(size_t k, frame_id_t fid);
 
   void SetEvictable(bool is_evictable) { is_evictable_ = is_evictable; }
@@ -158,9 +157,8 @@ class LRUKReplacer {
    */
   auto Size() -> size_t;
 
-private:
+ private:
   auto EvictLRU(frame_id_t *frame_id) -> bool;
-
 
  private:
   // TODO(student): implement me! You can replace these member variables as you like.

@@ -47,7 +47,7 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Insert(const K &key, const V &value, 
     if (size_ == 0) {
       array_[0] = std::make_pair(key, value);
       size_++;
-      return true;      
+      return true;
     }
 
     if (cmp(key, array_[0].first) == 0) {
@@ -88,7 +88,6 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Insert(const K &key, const V &value, 
       size_++;
       return true;
     }
-
   }
   return false;
 }
@@ -109,7 +108,7 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Remove(const K &key, const KC &cmp) -
     if (cmp(key, array_[size_ - 1].first) == 0) {
       size_--;
       return true;
-    }    
+    }
 
     uint32_t pos = size_;
     if (bsearch(key, cmp, &pos)) {
@@ -119,7 +118,7 @@ auto ExtendibleHTableBucketPage<K, V, KC>::Remove(const K &key, const KC &cmp) -
       while (idx < size_) {
         array_[idx] = std::move(array_[idx + 1]);
         idx++;
-      }      
+      }
       return true;
     }
     return false;
@@ -185,7 +184,7 @@ auto ExtendibleHTableBucketPage<K, V, KC>::bsearch(const K &key, const KC &cmp, 
         l = m + 1;
       } else {
         break;
-      }      
+      }
     } else {
       if (m > 0) {
         r = m - 1;

@@ -126,8 +126,8 @@ class DiskExtendibleHashTable {
   auto InsertToBucket(ExtendibleHTableBucketPage<K, V, KC> *bucket, ExtendibleHTableDirectoryPage *directory,
                       uint32_t bucket_idx, const K &key, const V &value) -> bool;
 
-  auto InsertToBucket(WritePageGuard &&bucket_guard, uint32_t bucket_idx, 
-                      ExtendibleHTableDirectoryPage *directory, const K &key, const V &value) -> bool;
+  auto InsertToBucket(WritePageGuard &&bucket_guard, uint32_t bucket_idx, ExtendibleHTableDirectoryPage *directory,
+                      const K &key, const V &value) -> bool;
 
   // member variables
   std::string index_name_;

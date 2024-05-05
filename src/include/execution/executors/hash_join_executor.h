@@ -54,6 +54,12 @@ class HashJoinExecutor : public AbstractExecutor {
  private:
   /** The HashJoin plan node to be executed. */
   const HashJoinPlanNode *plan_;
+
+  std::unique_ptr<AbstractExecutor> left_child_;
+  std::unique_ptr<AbstractExecutor> right_child_;
+
+  std::vector<Tuple> output_;
+  std::size_t out_idx_;
 };
 
 }  // namespace bustub

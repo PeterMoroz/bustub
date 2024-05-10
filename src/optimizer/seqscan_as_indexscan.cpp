@@ -1,18 +1,17 @@
-#include "optimizer/optimizer.h"
-#include "execution/plans/seq_scan_plan.h"
-#include "execution/plans/index_scan_plan.h"
-#include "execution/expressions/comparison_expression.h"
-#include "execution/expressions/logic_expression.h"
 #include "execution/expressions/column_value_expression.h"
+#include "execution/expressions/comparison_expression.h"
 #include "execution/expressions/constant_value_expression.h"
+#include "execution/expressions/logic_expression.h"
+#include "execution/plans/index_scan_plan.h"
+#include "execution/plans/seq_scan_plan.h"
+#include "optimizer/optimizer.h"
 
 #include <tuple>
 
 namespace bustub {
 
-auto ProcessCompareEqualExpressions(const std::vector<AbstractExpressionRef> &expressions, const TableInfo *table_info) ->
-    std::optional<std::pair<std::uint32_t, std::vector<AbstractExpressionRef>>> {
-  
+auto ProcessCompareEqualExpressions(const std::vector<AbstractExpressionRef> &expressions, const TableInfo *table_info)
+    -> std::optional<std::pair<std::uint32_t, std::vector<AbstractExpressionRef>>> {
   std::vector<AbstractExpressionRef> values_expressions;
   std::uint32_t col_index = std::numeric_limits<std::uint32_t>::max();
 
@@ -66,9 +65,8 @@ auto ProcessCompareEqualExpressions(const std::vector<AbstractExpressionRef> &ex
   return std::make_pair(col_index, values_expressions);
 }
 
-auto TraverseLogicOr(const AbstractExpressionRef &expr, 
-                    std::vector<AbstractExpressionRef> &cmp_eq_expressions) -> void {
-
+auto TraverseLogicOr(const AbstractExpressionRef &expr, std::vector<AbstractExpressionRef> &cmp_eq_expressions)
+    -> void {
   const auto &lchild = expr->GetChildAt(0);
   const auto &rchild = expr->GetChildAt(1);
 
@@ -82,7 +80,7 @@ auto TraverseLogicOr(const AbstractExpressionRef &expr,
         TraverseLogicOr(rchild, cmp_eq_expressions);
       } else {
         cmp_eq_expressions.clear();
-        return ;
+        return;
       }
     }
   }
@@ -97,11 +95,10 @@ auto TraverseLogicOr(const AbstractExpressionRef &expr,
         TraverseLogicOr(lchild, cmp_eq_expressions);
       } else {
         cmp_eq_expressions.clear();
-        return ;
+        return;
       }
     }
   }
-
 }
 
 auto Optimizer::OptimizeSeqScanAsIndexScan(const bustub::AbstractPlanNodeRef &plan) -> AbstractPlanNodeRef {
@@ -110,20 +107,21 @@ auto Optimizer::OptimizeSeqScanAsIndexScan(const bustub::AbstractPlanNodeRef &pl
 
   if (plan->GetType() == PlanType::SeqScan) {
     const auto &seq_scan = dynamic_cast<const SeqScanPlanNode &>(*plan);
-    if (seq_scan.filter_predicate_) {      
+    if (seq_scan.filter_predicate_) {
       if (const auto *expr = dynamic_cast<const LogicExpression *>(seq_scan.filter_predicate_.get()); expr != nullptr) {
         if (expr->logic_type_ == LogicType::Or) {
           std::vector<AbstractExpressionRef> cmp_eq_children;
           TraverseLogicOr(seq_scan.filter_predicate_, cmp_eq_children);
           if (!cmp_eq_children.empty()) {
-            auto predicates = ProcessCompareEqualExpressions(cmp_eq_children, catalog_.GetTable(seq_scan.GetTableOid()));
+            auto predicates =
+                ProcessCompareEqualExpressions(cmp_eq_children, catalog_.GetTable(seq_scan.GetTableOid()));
             if (predicates.has_value()) {
               const auto *table_info = catalog_.GetTable(seq_scan.GetTableOid());
               auto index_info = MatchIndex(table_info->name_, std::get<0>(predicates.value()));
               if (index_info.has_value()) {
-                return std::make_shared<IndexScanPlanNode>(plan->output_schema_, seq_scan.GetTableOid(), 
-                                                          std::get<0>(index_info.value()), nullptr,
-                                                          std::get<1>(predicates.value()));
+                return std::make_shared<IndexScanPlanNode>(plan->output_schema_, seq_scan.GetTableOid(),
+                                                           std::get<0>(index_info.value()), nullptr,
+                                                           std::get<1>(predicates.value()));
               }
             }
           }
@@ -143,27 +141,24 @@ auto Optimizer::OptimizeSeqScanAsIndexScan(const bustub::AbstractPlanNodeRef &pl
             const auto *table_info = catalog_.GetTable(seq_scan.GetTableOid());
             auto index_info = MatchIndex(table_info->name_, lcolumn->GetColIdx());
             if (index_info.has_value()) {
-              return std::make_shared<IndexScanPlanNode>(plan->output_schema_,
-                                                      seq_scan.GetTableOid(), 
-                                                      std::get<0>(index_info.value()), nullptr,
-                                                      std::vector<AbstractExpressionRef>{rchild});
+              return std::make_shared<IndexScanPlanNode>(plan->output_schema_, seq_scan.GetTableOid(),
+                                                         std::get<0>(index_info.value()), nullptr,
+                                                         std::vector<AbstractExpressionRef>{rchild});
             }
           } else if (rcolumn && lconstant) {
             const auto *table_info = catalog_.GetTable(seq_scan.GetTableOid());
-            auto index_info = MatchIndex(table_info->name_, rcolumn->GetColIdx());            
+            auto index_info = MatchIndex(table_info->name_, rcolumn->GetColIdx());
             if (index_info.has_value()) {
-              return std::make_shared<IndexScanPlanNode>(plan->output_schema_,
-                                                      seq_scan.GetTableOid(), 
-                                                      std::get<0>(index_info.value()), nullptr,
-                                                      std::vector<AbstractExpressionRef>{lchild});
+              return std::make_shared<IndexScanPlanNode>(plan->output_schema_, seq_scan.GetTableOid(),
+                                                         std::get<0>(index_info.value()), nullptr,
+                                                         std::vector<AbstractExpressionRef>{lchild});
             }
           }
-
         }
       }
     }
   }
-  
+
   return plan;
 }
 

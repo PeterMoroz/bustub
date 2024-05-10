@@ -16,9 +16,8 @@
 
 namespace bustub {
 
-auto GetMatchIndexes(const std::vector<std::vector<Value>> &where, 
-                    const std::vector<Value> &what) -> std::vector<std::size_t>
-{
+auto GetMatchIndexes(const std::vector<std::vector<Value>> &where, const std::vector<Value> &what)
+    -> std::vector<std::size_t> {
   std::vector<std::size_t> indexes;
   std::size_t i = 0;
   while (i < where.size()) {
@@ -38,22 +37,20 @@ auto GetMatchIndexes(const std::vector<std::vector<Value>> &where,
   return indexes;
 };
 
-
-
 HashJoinExecutor::HashJoinExecutor(ExecutorContext *exec_ctx, const HashJoinPlanNode *plan,
                                    std::unique_ptr<AbstractExecutor> &&left_child,
                                    std::unique_ptr<AbstractExecutor> &&right_child)
-    : AbstractExecutor(exec_ctx) 
-    , plan_(plan)
-    , left_child_(std::move(left_child))
-    , right_child_(std::move(right_child)) {
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      left_child_(std::move(left_child)),
+      right_child_(std::move(right_child)) {
   if (!(plan->GetJoinType() == JoinType::LEFT || plan->GetJoinType() == JoinType::INNER)) {
     // Note for 2023 Fall: You ONLY need to implement left join and inner join.
     throw bustub::NotImplementedException(fmt::format("join type {} not supported", plan->GetJoinType()));
   }
 }
 
-void HashJoinExecutor::Init() { 
+void HashJoinExecutor::Init() {
   std::unordered_map<hash_t, std::vector<Tuple>> ht_right_tuples{};
   std::unordered_map<hash_t, std::vector<std::vector<Value>>> ht_right_values{};
 
@@ -71,7 +68,7 @@ void HashJoinExecutor::Init() {
     ht_right_tuples[key].push_back(tuple);
     ht_right_values[key].push_back(values);
   }
-  
+
   const auto &left_schema = left_child_->GetOutputSchema();
   const auto &right_schema = right_child_->GetOutputSchema();
 
@@ -91,7 +88,7 @@ void HashJoinExecutor::Init() {
       tuples_indexes = GetMatchIndexes(it->second, values);
     }
 
-    if (!tuples_indexes.empty()) {      
+    if (!tuples_indexes.empty()) {
       auto it2 = ht_right_tuples.find(key);
       BUSTUB_ASSERT(it2 != ht_right_tuples.cend(), "the tuple matching the key values not found");
       for (const auto idx : tuples_indexes) {
@@ -121,19 +118,19 @@ void HashJoinExecutor::Init() {
           values.push_back(ValueFactory::GetNullValueByType(col.GetType()));
         }
       }
-      output_.push_back(Tuple{values, &GetOutputSchema()});      
+      output_.push_back(Tuple{values, &GetOutputSchema()});
     }
   }
 
   out_idx_ = 0;
 }
 
-auto HashJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
+auto HashJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   if (out_idx_ < output_.size()) {
     *tuple = output_[out_idx_++];
     return true;
   }
-  return false; 
+  return false;
 }
 
 }  // namespace bustub

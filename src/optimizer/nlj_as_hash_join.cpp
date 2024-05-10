@@ -20,8 +20,8 @@
 
 namespace bustub {
 
-auto TraverseLogicalAnd(const AbstractExpressionRef &expr, 
-                      std::vector<AbstractExpressionRef> &cmp_expressions) -> void {
+auto TraverseLogicalAnd(const AbstractExpressionRef &expr, std::vector<AbstractExpressionRef> &cmp_expressions)
+    -> void {
   const auto &lchild = expr->GetChildAt(0);
   const auto &rchild = expr->GetChildAt(1);
 
@@ -53,13 +53,12 @@ auto TraverseLogicalAnd(const AbstractExpressionRef &expr,
         }
       }
     }
-  }  
+  }
 }
 
 auto GetKeyExpressions(const std::vector<AbstractExpressionRef> &cmp_eq_expressions,
-                        std::vector<AbstractExpressionRef> &left_key_expressions,
-                        std::vector<AbstractExpressionRef> &right_key_expressions) -> void
-{
+                       std::vector<AbstractExpressionRef> &left_key_expressions,
+                       std::vector<AbstractExpressionRef> &right_key_expressions) -> void {
   for (const auto &expr : cmp_eq_expressions) {
     const auto &lchild = expr->GetChildAt(0);
     const auto &rchild = expr->GetChildAt(1);
@@ -80,7 +79,6 @@ auto GetKeyExpressions(const std::vector<AbstractExpressionRef> &cmp_eq_expressi
       }
     }
   }
-
 }
 
 auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> AbstractPlanNodeRef {
@@ -93,7 +91,7 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
     children.emplace_back(OptimizeNLJAsHashJoin(child));
   }
 
-  auto optimized_plan = plan->CloneWithChildren(std::move(children));        
+  auto optimized_plan = plan->CloneWithChildren(std::move(children));
 
   if (optimized_plan->GetType() == PlanType::NestedLoopJoin) {
     const auto &nlj_plan = dynamic_cast<const NestedLoopJoinPlanNode &>(*optimized_plan);
@@ -108,13 +106,14 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
           GetKeyExpressions(cmp_eq_children, left_expressions, right_expressions);
 
           if (!left_expressions.empty() && !right_expressions.empty()) {
-            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, 
-                nlj_plan.GetLeftPlan(), nlj_plan.GetRightPlan(),
-                left_expressions, right_expressions, nlj_plan.GetJoinType());
+            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, nlj_plan.GetLeftPlan(),
+                                                      nlj_plan.GetRightPlan(), left_expressions, right_expressions,
+                                                      nlj_plan.GetJoinType());
           }
         }
       }
-    } else if (const auto *expr = dynamic_cast<const ComparisonExpression *>(nlj_plan.Predicate().get()); expr != nullptr) {
+    } else if (const auto *expr = dynamic_cast<const ComparisonExpression *>(nlj_plan.Predicate().get());
+               expr != nullptr) {
       if (expr->comp_type_ == ComparisonType::Equal) {
         const auto &lchild = expr->GetChildAt(0);
         const auto &rchild = expr->GetChildAt(1);
@@ -126,15 +125,15 @@ auto Optimizer::OptimizeNLJAsHashJoin(const AbstractPlanNodeRef &plan) -> Abstra
           if (lcolumn_expr->GetTupleIdx() == 0 && rcolumn_expr->GetTupleIdx() == 1) {
             std::vector<AbstractExpressionRef> left_expressions{lchild};
             std::vector<AbstractExpressionRef> right_expressions{rchild};
-            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, 
-                nlj_plan.GetLeftPlan(), nlj_plan.GetRightPlan(),
-                left_expressions, right_expressions, nlj_plan.GetJoinType());            
+            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, nlj_plan.GetLeftPlan(),
+                                                      nlj_plan.GetRightPlan(), left_expressions, right_expressions,
+                                                      nlj_plan.GetJoinType());
           } else if (lcolumn_expr->GetTupleIdx() == 1 && rcolumn_expr->GetTupleIdx() == 0) {
             std::vector<AbstractExpressionRef> left_expressions{rchild};
             std::vector<AbstractExpressionRef> right_expressions{lchild};
-            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, 
-                nlj_plan.GetLeftPlan(), nlj_plan.GetRightPlan(),
-                left_expressions, right_expressions, nlj_plan.GetJoinType());
+            return std::make_shared<HashJoinPlanNode>(nlj_plan.output_schema_, nlj_plan.GetLeftPlan(),
+                                                      nlj_plan.GetRightPlan(), left_expressions, right_expressions,
+                                                      nlj_plan.GetJoinType());
           }
         }
       }

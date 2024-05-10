@@ -25,8 +25,8 @@
 #include "type/numeric_type.h"
 #include "type/timestamp_type.h"
 #include "type/value.h"
-#include "type/varlen_type.h"
 #include "type/value_factory.h"
+#include "type/varlen_type.h"
 
 namespace bustub {
 

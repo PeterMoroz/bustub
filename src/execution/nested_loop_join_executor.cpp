@@ -20,26 +20,26 @@ namespace bustub {
 NestedLoopJoinExecutor::NestedLoopJoinExecutor(ExecutorContext *exec_ctx, const NestedLoopJoinPlanNode *plan,
                                                std::unique_ptr<AbstractExecutor> &&left_executor,
                                                std::unique_ptr<AbstractExecutor> &&right_executor)
-    : AbstractExecutor(exec_ctx) 
-    , plan_(plan)
-    , left_executor_(std::move(left_executor))
-    , right_executor_(std::move(right_executor)) {
+    : AbstractExecutor(exec_ctx),
+      plan_(plan),
+      left_executor_(std::move(left_executor)),
+      right_executor_(std::move(right_executor)) {
   if (!(plan->GetJoinType() == JoinType::LEFT || plan->GetJoinType() == JoinType::INNER)) {
     // Note for 2023 Fall: You ONLY need to implement left join and inner join.
     throw bustub::NotImplementedException(fmt::format("join type {} not supported", plan->GetJoinType()));
   }
 }
 
-void NestedLoopJoinExecutor::Init() { 
+void NestedLoopJoinExecutor::Init() {
   Tuple right_tuple;
   Tuple left_tuple;
   RID right_rid;
   RID left_rid;
   std::vector<Value> values;
 
-  const auto schema = plan_->InferJoinSchema(*plan_->GetLeftPlan(), *plan_->GetRightPlan());      
+  const auto schema = plan_->InferJoinSchema(*plan_->GetLeftPlan(), *plan_->GetRightPlan());
   const auto &left_schema{plan_->GetLeftPlan()->OutputSchema()};
-  const auto &right_schema{plan_->GetRightPlan()->OutputSchema()};  
+  const auto &right_schema{plan_->GetRightPlan()->OutputSchema()};
   bool produce_tuple = false;
 
   output_.clear();
@@ -64,7 +64,7 @@ void NestedLoopJoinExecutor::Init() {
           }
         }
         produce_tuple = true;
-        output_.push_back(Tuple{values, &schema});        
+        output_.push_back(Tuple{values, &schema});
       }
     }
 
@@ -79,14 +79,13 @@ void NestedLoopJoinExecutor::Init() {
         }
       }
       output_.push_back(Tuple{values, &schema});
-    }    
+    }
   }
 
   out_idx_ = 0;
 }
 
-auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool { 
-
+auto NestedLoopJoinExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   if (out_idx_ < output_.size()) {
     *tuple = output_[out_idx_++];
     return true;

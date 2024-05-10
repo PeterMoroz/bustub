@@ -77,7 +77,7 @@ class SimpleAggregationHashTable {
           if (!input.aggregates_[i].IsNull()) {
             result->aggregates_[i] = result->aggregates_[i].Add(input.aggregates_[i]);
           }
-          break;        
+          break;
         case AggregationType::CountAggregate:
           if (!input.aggregates_[i].IsNull()) {
             if (result->aggregates_[i].IsNull()) {

@@ -19,11 +19,11 @@ auto Optimizer::OptimizeSortLimitAsTopN(const AbstractPlanNodeRef &plan) -> Abst
   if (optimized_plan->GetType() == PlanType::Limit) {
     const auto &limit_child = optimized_plan->GetChildAt(0);
     if (limit_child->GetType() == PlanType::Sort) {
-      const auto limit_plan = dynamic_cast<const LimitPlanNode&>(*optimized_plan);
-      const auto sort_plan = dynamic_cast<const SortPlanNode&>(*limit_child);
+      const auto limit_plan = dynamic_cast<const LimitPlanNode &>(*optimized_plan);
+      const auto sort_plan = dynamic_cast<const SortPlanNode &>(*limit_child);
       const auto &sort_child = limit_child->GetChildAt(0);
-      return std::make_shared<TopNPlanNode>(optimized_plan->output_schema_, sort_child,
-                                          sort_plan.GetOrderBy(), limit_plan.GetLimit());
+      return std::make_shared<TopNPlanNode>(optimized_plan->output_schema_, sort_child, sort_plan.GetOrderBy(),
+                                            limit_plan.GetLimit());
     }
   }
 

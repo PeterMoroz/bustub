@@ -90,5 +90,10 @@ class WindowFunctionExecutor : public AbstractExecutor {
 
   /** The child executor from which tuples are obtained */
   std::unique_ptr<AbstractExecutor> child_executor_;
+
+  std::unordered_map<uint32_t, std::vector<Tuple>> partitions_;
+
+  std::vector<Tuple> output_;
+  std::size_t out_idx_;
 };
 }  // namespace bustub

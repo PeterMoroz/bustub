@@ -12,7 +12,40 @@ namespace bustub {
 
 auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const TupleMeta &base_meta,
                       const std::vector<UndoLog> &undo_logs) -> std::optional<Tuple> {
-  UNIMPLEMENTED("not implemented");
+
+  std::vector<Value> values(schema->GetColumnCount());
+  bool is_deleted = base_meta.is_deleted_;
+
+  for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+    values[i] = base_tuple.GetValue(schema, i);
+  }
+
+  for (const auto &undo : undo_logs) {
+    if ((is_deleted = undo.is_deleted_)) {
+      continue;
+    }
+
+    std::vector<uint32_t> modified_field_indexes;
+    for (size_t i = 0; i < undo.modified_fields_.size(); i++) {
+      if (undo.modified_fields_[i]) {
+        modified_field_indexes.push_back(i);
+      }
+    }
+
+    if (!modified_field_indexes.empty()) {
+      std::vector<Column>  columns;
+      for (size_t i = 0; i < modified_field_indexes.size(); i++) {
+        columns.push_back(schema->GetColumn(modified_field_indexes[i]));
+      }
+      Schema partial_schema(columns);
+      for (size_t i = 0; i < modified_field_indexes.size(); i++) {
+        const auto idx = modified_field_indexes[i];
+        values[idx] = undo.tuple_.GetValue(&partial_schema, i);
+      }
+    }
+  }
+
+  return is_deleted ? std::nullopt : std::make_optional<Tuple>(values, schema);
 }
 
 void TxnMgrDbg(const std::string &info, TransactionManager *txn_mgr, const TableInfo *table_info,

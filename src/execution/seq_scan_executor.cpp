@@ -40,7 +40,7 @@ auto SeqScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
           }
         }
 
-        if (curr_meta.ts_ == tx->GetReadTs() || curr_meta.ts_ == tx->GetTransactionTempTs()) {
+        if (curr_meta.ts_ <= tx->GetReadTs() || curr_meta.ts_ == tx->GetTransactionTempTs()) {
           *tuple = curr_tuple;
           *rid = curr_rid;
           return true;

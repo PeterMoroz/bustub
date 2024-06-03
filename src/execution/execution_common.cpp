@@ -48,15 +48,28 @@ auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const Tuple
   return is_deleted ? std::nullopt : std::make_optional<Tuple>(values, schema);
 }
 
+auto ModifiedTupleToString(const Tuple &tuple, const std::vector<bool> &fields, const Schema *schema) -> std::string {
+  std::ostringstream oss;
+  std::uint32_t column_idx = 0;
+  oss << '(';
+  for (uint32_t i = 0; i < fields.size(); i++) {
+    if (fields[i]) {
+      oss << tuple.GetValue(schema, column_idx++).ToString();
+    } else {
+      oss << '_';
+    }
+    if (i < fields.size() - 1) {
+      oss << ',';
+    }
+  }
+  oss << ')';
+  return oss.str();
+}
+
 void TxnMgrDbg(const std::string &info, TransactionManager *txn_mgr, const TableInfo *table_info,
                TableHeap *table_heap) {
   // always use stderr for printing logs...
   fmt::println(stderr, "debug_hook: {}", info);
-
-  fmt::println(
-      stderr,
-      "You see this line of text because you have not implemented `TxnMgrDbg`. You should do this once you have "
-      "finished task 2. Implementing this helper function will save you a lot of time for debugging in later tasks.");
 
   // We recommend implementing this function as traversing the table heap and print the version chain. An example output
   // of our reference solution:
@@ -72,6 +85,25 @@ void TxnMgrDbg(const std::string &info, TransactionManager *txn_mgr, const Table
   // RID=0/3 ts=txn6 <del marker> tuple=(<NULL>, <NULL>, <NULL>)
   //   txn6@0 (6, <NULL>, <NULL>) ts=2
   //   txn3@1 (7, _, _) ts=1
+
+  auto itr{table_heap->MakeIterator()};
+  while (!itr.IsEnd()) {
+    const auto rid = itr.GetRID();
+    const auto [tmeta, tuple] = itr.GetTuple();
+    const auto undo_link = txn_mgr->GetUndoLink(rid);
+    fmt::println(stderr, "RID={} ts={} deleted={} tuple={}", 
+                          rid.ToString(), tmeta.ts_, tmeta.is_deleted_, tuple.ToString(&table_info->schema_));
+    if (undo_link.has_value()) {
+      auto undo_log = txn_mgr->GetUndoLogOptional(*undo_link);
+      while (undo_log.has_value()) {
+        const std::string tuplestr{ModifiedTupleToString(undo_log->tuple_, undo_log->modified_fields_, &table_info->schema_)};
+        fmt::println(stderr, " ts={} deleted={} tuple={}", undo_log->ts_, undo_log->is_deleted_, tuplestr);
+        undo_log = txn_mgr->GetUndoLogOptional(undo_log->prev_version_);
+      }
+    }
+
+    ++itr;
+  }
 }
 
 }  // namespace bustub

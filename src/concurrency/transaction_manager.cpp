@@ -55,6 +55,7 @@ auto TransactionManager::Commit(Transaction *txn) -> bool {
   std::unique_lock<std::mutex> commit_lck(commit_mutex_);
 
   // TODO(fall2023): acquire commit ts!
+  auto commit_ts = last_commit_ts_ + 1;
 
   if (txn->state_ != TransactionState::RUNNING) {
     throw Exception("txn not in running state");
@@ -69,12 +70,21 @@ auto TransactionManager::Commit(Transaction *txn) -> bool {
   }
 
   // TODO(fall2023): Implement the commit logic!
+  const auto wsets = txn->GetWriteSets();
+  for (const auto &wset : wsets) {
+    auto table_info = catalog_->GetTable(wset.first);
+    for (const auto &rid : wset.second) {
+      auto tuple_meta = table_info->table_->GetTupleMeta(rid);
+      table_info->table_->UpdateTupleMeta(TupleMeta{commit_ts, tuple_meta.is_deleted_}, rid);
+    }
+  }
 
   std::unique_lock<std::shared_mutex> lck(txn_map_mutex_);
 
   // TODO(fall2023): set commit timestamp + update last committed timestamp here.
+
+  txn->commit_ts_.store(commit_ts);
   last_commit_ts_++;
-  txn->commit_ts_.store(last_commit_ts_.load());
 
   txn->state_ = TransactionState::COMMITTED;
   running_txns_.UpdateCommitTs(txn->commit_ts_);
@@ -95,6 +105,71 @@ void TransactionManager::Abort(Transaction *txn) {
   running_txns_.RemoveTxn(txn->read_ts_);
 }
 
-void TransactionManager::GarbageCollection() { UNIMPLEMENTED("not implemented"); }
+void TransactionManager::GarbageCollection() {
+
+  std::unordered_set<txn_id_t> gc_candidates;
+  std::unordered_set<txn_id_t> ongoing;
+
+  std::unique_lock<std::shared_mutex> l(txn_map_mutex_);
+
+  for (const auto [txid, tx] : txn_map_) {
+    const auto tx_state = tx->GetTransactionState();
+    if (tx_state == TransactionState::COMMITTED || tx_state == TransactionState::ABORTED) {
+      gc_candidates.insert(txid);
+    } else {
+      ongoing.insert(txid);
+    }
+  }
+
+  const auto watermark = running_txns_.GetWatermark();
+  for (const auto txid : gc_candidates) {
+    const auto tx = txn_map_[txid];
+    bool gc_ready = true;
+    const std::size_t undo_log_num = tx->GetUndoLogNum();
+    for (std::size_t idx = 0; idx < undo_log_num; idx++) {
+      const auto undo_log = tx->GetUndoLog(idx);
+      if (undo_log.ts_ >= watermark) {
+        gc_ready = false;
+        break;
+      }
+    }
+    
+    if (gc_ready) {
+      const auto tnames{catalog_->GetTableNames()};
+      for (const auto tname : tnames) {
+        const auto table_info{catalog_->GetTable(tname)};
+        const auto &table_heap = table_info->table_;
+        auto itr{table_heap->MakeIterator()};
+        while (!itr.IsEnd()) {
+          const auto [tmeta, tuple] = itr.GetTuple();
+          if (tmeta.ts_ == tx->GetCommitTs()) {
+            for (const auto txid2 : ongoing) {
+              const auto tx2 = txn_map_[txid2];
+              if (tx2->GetReadTs() <= tmeta.ts_) {
+                gc_ready = false;
+                break;
+              }
+            }
+          }
+
+          if (!gc_ready) {
+            break;
+          }
+
+          ++itr;
+        }
+        if (gc_ready) {
+          break;
+        }
+      }
+
+      if (gc_ready) {
+        running_txns_.RemoveTxn(tx->GetReadTs());
+        txn_map_.erase(txid);
+      }
+    }
+  }
+  
+}
 
 }  // namespace bustub

@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "execution/executors/insert_executor.h"
+#include "concurrency/transaction_manager.h"
 
 namespace bustub {
 
@@ -29,15 +30,19 @@ void InsertExecutor::Init() {
   Tuple child_tuple;
   RID child_rid;
   int32_t num_inserted_count = 0;
+  auto tx = exec_ctx_->GetTransaction();
+  const auto tx_temp_ts = tx->GetTransactionTempTs();
   while (child_->Next(&child_tuple, &child_rid)) {
     num_inserted_count++;
-    auto inserted_rid = table_info_->table_->InsertTuple(TupleMeta{0, false}, child_tuple);
+    auto inserted_rid = table_info_->table_->InsertTuple(TupleMeta{tx_temp_ts, false}, child_tuple);
     BUSTUB_ASSERT(inserted_rid, "insertion failed");
-    for (auto index_info : indexes_) {
-      const Tuple key{child_tuple.KeyFromTuple(child_->GetOutputSchema(), *index_info->index_->GetKeySchema(),
-                                               index_info->index_->GetKeyAttrs())};
-      BUSTUB_ASSERT(index_info->index_->InsertEntry(key, inserted_rid.value(), nullptr), "insert index entry failed");
-    }
+    exec_ctx_->GetTransactionManager()->UpdateUndoLink(*inserted_rid, std::nullopt);
+    tx->AppendWriteSet(plan_->GetTableOid(), *inserted_rid);
+    // for (auto index_info : indexes_) {
+    //   const Tuple key{child_tuple.KeyFromTuple(child_->GetOutputSchema(), *index_info->index_->GetKeySchema(),
+    //                                            index_info->index_->GetKeyAttrs())};
+    //   BUSTUB_ASSERT(index_info->index_->InsertEntry(key, inserted_rid.value(), nullptr), "insert index entry failed");
+    // }
   }
 
   const auto &schema = GetOutputSchema();

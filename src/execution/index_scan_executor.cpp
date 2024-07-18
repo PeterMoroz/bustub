@@ -11,6 +11,8 @@
 //===----------------------------------------------------------------------===//
 #include "execution/executors/index_scan_executor.h"
 #include "execution/expressions/constant_value_expression.h"
+#include "concurrency/transaction_manager.h"
+#include "execution/execution_common.h"
 
 namespace bustub {
 IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanPlanNode *plan)
@@ -34,13 +36,45 @@ void IndexScanExecutor::Init() {
 
 auto IndexScanExecutor::Next(Tuple *tuple, RID *rid) -> bool {
   if (it_ != rids_.cend()) {
-    const auto t = table_info_->table_->GetTuple(*it_);
-    if (!t.first.is_deleted_) {
-      *tuple = t.second;
-      *rid = *it_;
+    const RID curr_rid = *it_++;
+    const auto [curr_meta, curr_tuple] = table_info_->table_->GetTuple(curr_rid);
+    const auto tx = exec_ctx_->GetTransaction();
+    if (curr_meta.ts_ <= tx->GetReadTs() || curr_meta.ts_ == tx->GetTransactionTempTs()) {
+      if (curr_meta.is_deleted_) {
+        return false;
+      }
+      *tuple = curr_tuple;
+      *rid = curr_rid;
+      return true;
+    } else {
+      const auto tx_manager = exec_ctx_->GetTransactionManager();
+      const auto undo_link_1st = tx_manager->GetUndoLink(curr_rid);
+      if (undo_link_1st.has_value()) {
+        auto undo_link = *undo_link_1st;
+        std::vector<UndoLog> undo_logs;
+        while (true) {
+          const auto undo_log = tx_manager->GetUndoLogOptional(undo_link);
+          if (undo_log.has_value()) {
+            undo_logs.push_back(*undo_log);
+            undo_link = undo_log->prev_version_;
+            if (!undo_link.IsValid() || (*undo_log).ts_ <= tx->GetReadTs()) {
+              break;
+            }
+          }
+        }
+        if (!undo_logs.empty()) {
+          if (undo_logs.back().ts_ > tx->GetReadTs()) {
+            return false;
+          }
+          auto reconstructed_tuple = ReconstructTuple(&GetOutputSchema(), curr_tuple, curr_meta, undo_logs);
+          if (reconstructed_tuple.has_value()) {
+            *tuple = *reconstructed_tuple;
+            *rid = curr_rid;
+            return true;
+          }
+        }
+      }
     }
-    ++it_;
-    return true;
   }
   return false;
 }

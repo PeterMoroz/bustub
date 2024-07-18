@@ -27,22 +27,6 @@ void DeleteExecutor::Init() {
   indexes_ = catalog->GetTableIndexes(table_info_->name_);
   child_executor_->Init();
 
-  // Tuple child_tuple;
-  // RID child_rid;
-  // int32_t num_deleted_count = 0;
-  // while (child_executor_->Next(&child_tuple, &child_rid)) {
-  //   num_deleted_count++;
-  //   auto t = table_info_->table_->GetTuple(child_rid);
-  //   if (!t.first.is_deleted_) {
-  //     table_info_->table_->UpdateTupleMeta(TupleMeta{t.first.ts_, true}, child_rid);
-  //     for (auto index_info : indexes_) {
-  //       const Tuple key{t.second.KeyFromTuple(child_executor_->GetOutputSchema(), *index_info->index_->GetKeySchema(),
-  //                                             index_info->index_->GetKeyAttrs())};
-  //       index_info->index_->DeleteEntry(key, child_rid, nullptr);
-  //     }
-  //   }
-  // }
-
   auto tx = exec_ctx_->GetTransaction();
   auto tx_manager = exec_ctx_->GetTransactionManager();  
 
@@ -52,8 +36,7 @@ void DeleteExecutor::Init() {
   while (child_executor_->Next(&child_tuple, &child_rid)) {
     auto [tmeta, tuple] = table_info_->table_->GetTuple(child_rid);    
     const auto tx_temp_ts = tx->GetTransactionTempTs();
-    // bool self_modified = tx->GetTransactionTempTs() == tmeta.ts_;
-    bool self_modified = tx_temp_ts == tmeta.ts_;
+    const bool self_modified = tx_temp_ts == tmeta.ts_;
     if (!self_modified) {
       if (tmeta.ts_ > TXN_START_ID || tmeta.ts_ > tx->GetReadTs()) {
         tx->SetTainted();

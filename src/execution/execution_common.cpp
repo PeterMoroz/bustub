@@ -22,6 +22,11 @@ auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const Tuple
 
   for (const auto &undo : undo_logs) {
     if ((is_deleted = undo.is_deleted_)) {
+      if (undo.tuple_.GetLength() > 0) {
+        for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+          values[i] = undo.tuple_.GetValue(schema, i);
+        }
+      }
       continue;
     }
 
@@ -41,6 +46,12 @@ auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const Tuple
       for (size_t i = 0; i < modified_field_indexes.size(); i++) {
         const auto idx = modified_field_indexes[i];
         values[idx] = undo.tuple_.GetValue(&partial_schema, i);
+      }
+    } else {
+      if (undo.tuple_.GetLength() != 0) {
+        for (uint32_t i = 0; i < schema->GetColumnCount(); i++) {
+          values[i] = undo.tuple_.GetValue(schema, i);
+        }
       }
     }
   }

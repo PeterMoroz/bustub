@@ -106,7 +106,6 @@ void TransactionManager::Abort(Transaction *txn) {
 }
 
 void TransactionManager::GarbageCollection() {
-
   std::unordered_set<txn_id_t> gc_candidates;
   std::unordered_set<txn_id_t> ongoing;
 
@@ -133,7 +132,7 @@ void TransactionManager::GarbageCollection() {
         break;
       }
     }
-    
+
     if (gc_ready) {
       const auto tnames{catalog_->GetTableNames()};
       for (const auto tname : tnames) {
@@ -169,7 +168,6 @@ void TransactionManager::GarbageCollection() {
       }
     }
   }
-  
 }
 
 }  // namespace bustub

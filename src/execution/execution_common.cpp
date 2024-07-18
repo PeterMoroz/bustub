@@ -12,7 +12,6 @@ namespace bustub {
 
 auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const TupleMeta &base_meta,
                       const std::vector<UndoLog> &undo_logs) -> std::optional<Tuple> {
-
   std::vector<Value> values(schema->GetColumnCount());
   bool is_deleted = base_meta.is_deleted_;
 
@@ -38,7 +37,7 @@ auto ReconstructTuple(const Schema *schema, const Tuple &base_tuple, const Tuple
     }
 
     if (!modified_field_indexes.empty()) {
-      std::vector<Column>  columns;
+      std::vector<Column> columns;
       for (size_t i = 0; i < modified_field_indexes.size(); i++) {
         columns.push_back(schema->GetColumn(modified_field_indexes[i]));
       }
@@ -77,7 +76,7 @@ auto ModifiedTupleToString(const Tuple &tuple, const std::vector<bool> &fields, 
   return oss.str();
 }
 
-auto TupleToString(const Tuple &tuple, const Schema* schema) -> std::string {
+auto TupleToString(const Tuple &tuple, const Schema *schema) -> std::string {
   if (tuple.GetRid() == RID{INVALID_PAGE_ID, 0}) {
     return "()";
   }
@@ -124,19 +123,22 @@ void TxnMgrDbg(const std::string &info, TransactionManager *txn_mgr, const Table
     const auto rid = itr.GetRID();
     const auto [tmeta, tuple] = itr.GetTuple();
     const auto undo_link = txn_mgr->GetUndoLink(rid);
-    fmt::println(stderr, "RID={} ts={} deleted={} tuple={}", 
-                rid.ToString(), tmeta.ts_, tmeta.is_deleted_, TupleToString(tuple, &table_info->schema_));
+    fmt::println(stderr, "RID={} ts={} deleted={} tuple={}", rid.ToString(), tmeta.ts_, tmeta.is_deleted_,
+                 TupleToString(tuple, &table_info->schema_));
     if (undo_link.has_value()) {
       auto undo_log = txn_mgr->GetUndoLogOptional(*undo_link);
       while (undo_log.has_value()) {
         if (undo_log->is_deleted_) {
-          fmt::println(stderr, " ts={} deleted=true tuple={}", undo_log->ts_, TupleToString(undo_log->tuple_, &table_info->schema_));
+          fmt::println(stderr, " ts={} deleted=true tuple={}", undo_log->ts_,
+                       TupleToString(undo_log->tuple_, &table_info->schema_));
         } else {
           if (!undo_log->modified_fields_.empty()) {
-            const std::string tuplestr{ModifiedTupleToString(undo_log->tuple_, undo_log->modified_fields_, &table_info->schema_)};
+            const std::string tuplestr{
+                ModifiedTupleToString(undo_log->tuple_, undo_log->modified_fields_, &table_info->schema_)};
             fmt::println(stderr, " ts={} deleted=false tuple={}", undo_log->ts_, tuplestr);
           } else {
-            fmt::println(stderr, " ts={} deleted=false tuple={}", undo_log->ts_, TupleToString(undo_log->tuple_, &table_info->schema_));
+            fmt::println(stderr, " ts={} deleted=false tuple={}", undo_log->ts_,
+                         TupleToString(undo_log->tuple_, &table_info->schema_));
           }
         }
         undo_log = txn_mgr->GetUndoLogOptional(undo_log->prev_version_);

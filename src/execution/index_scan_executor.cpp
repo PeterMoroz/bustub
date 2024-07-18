@@ -10,9 +10,9 @@
 //
 //===----------------------------------------------------------------------===//
 #include "execution/executors/index_scan_executor.h"
-#include "execution/expressions/constant_value_expression.h"
 #include "concurrency/transaction_manager.h"
 #include "execution/execution_common.h"
+#include "execution/expressions/constant_value_expression.h"
 
 namespace bustub {
 IndexScanExecutor::IndexScanExecutor(ExecutorContext *exec_ctx, const IndexScanPlanNode *plan)

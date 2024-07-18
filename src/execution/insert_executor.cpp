@@ -12,8 +12,8 @@
 
 #include <memory>
 
-#include "execution/executors/insert_executor.h"
 #include "concurrency/transaction_manager.h"
+#include "execution/executors/insert_executor.h"
 
 namespace bustub {
 
@@ -34,7 +34,6 @@ void InsertExecutor::Init() {
   const auto tx_temp_ts = tx->GetTransactionTempTs();
 
   while (child_->Next(&child_tuple, &child_rid)) {
-
     std::vector<RID> to_update;
     for (auto index_info : indexes_) {
       const Tuple key{child_tuple.KeyFromTuple(child_->GetOutputSchema(), *index_info->index_->GetKeySchema(),
@@ -49,7 +48,7 @@ void InsertExecutor::Init() {
           throw ExecutionException("the tuple already exists");
         }
         to_update.push_back(rid);
-      }     
+      }
     }
 
     if (to_update.empty()) {
@@ -60,7 +59,7 @@ void InsertExecutor::Init() {
 
       for (auto index_info : indexes_) {
         const Tuple key{child_tuple.KeyFromTuple(child_->GetOutputSchema(), *index_info->index_->GetKeySchema(),
-                                                index_info->index_->GetKeyAttrs())};
+                                                 index_info->index_->GetKeyAttrs())};
         if (!index_info->index_->InsertEntry(key, inserted_rid.value(), tx)) {
           tx->SetTainted();
           throw ExecutionException("unique key constraint violation");
@@ -68,16 +67,17 @@ void InsertExecutor::Init() {
       }
       num_inserted_count++;
     } else {
-      auto tx_manager = exec_ctx_->GetTransactionManager();  
+      auto tx_manager = exec_ctx_->GetTransactionManager();
       const auto schema = table_info_->schema_;
       for (const auto rid : to_update) {
         auto [tmeta, tuple, undo_link] = GetTupleAndUndoLink(tx_manager, table_info_->table_.get(), rid);
         if (tmeta.ts_ == tx->GetTransactionTempTs()) {
-          table_info_->table_->UpdateTupleInPlace(TupleMeta{tx->GetTransactionTempTs(), false}, child_tuple, rid, nullptr);
+          table_info_->table_->UpdateTupleInPlace(TupleMeta{tx->GetTransactionTempTs(), false}, child_tuple, rid,
+                                                  nullptr);
         } else {
-          UndoLog undo_log{ true, {}, tuple, tmeta.ts_, undo_link.has_value() ? *undo_link : UndoLink{} };
-          if (!UpdateTupleAndUndoLink(tx_manager, rid, tx->AppendUndoLog(undo_log), table_info_->table_.get(), 
-                                      tx, TupleMeta{tx->GetTransactionTempTs(), false}, child_tuple)) {
+          UndoLog undo_log{true, {}, tuple, tmeta.ts_, undo_link.has_value() ? *undo_link : UndoLink{}};
+          if (!UpdateTupleAndUndoLink(tx_manager, rid, tx->AppendUndoLog(undo_log), table_info_->table_.get(), tx,
+                                      TupleMeta{tx->GetTransactionTempTs(), false}, child_tuple)) {
             std::cout << "UpdateTupleAndUndoLink failed ! " << std::endl;
           }
         }

@@ -12,8 +12,8 @@
 
 #include <memory>
 
-#include "execution/executors/delete_executor.h"
 #include "concurrency/transaction_manager.h"
+#include "execution/executors/delete_executor.h"
 
 namespace bustub {
 
@@ -28,13 +28,13 @@ void DeleteExecutor::Init() {
   child_executor_->Init();
 
   auto tx = exec_ctx_->GetTransaction();
-  auto tx_manager = exec_ctx_->GetTransactionManager();  
+  auto tx_manager = exec_ctx_->GetTransactionManager();
 
   Tuple child_tuple;
   RID child_rid;
   int32_t num_deleted_count = 0;
   while (child_executor_->Next(&child_tuple, &child_rid)) {
-    auto [tmeta, tuple] = table_info_->table_->GetTuple(child_rid);    
+    auto [tmeta, tuple] = table_info_->table_->GetTuple(child_rid);
     const auto tx_temp_ts = tx->GetTransactionTempTs();
     const bool self_modified = tx_temp_ts == tmeta.ts_;
     if (!self_modified) {
@@ -48,8 +48,8 @@ void DeleteExecutor::Init() {
 
     const auto undo_link = tx_manager->GetUndoLink(child_rid);
     if (!self_modified) {
-      UndoLog undo_log{ tmeta.is_deleted_, {}, child_tuple, tmeta.ts_, undo_link.has_value() ? *undo_link : UndoLink{} };
-      tx_manager->UpdateUndoLink(child_rid, tx->AppendUndoLog(undo_log));      
+      UndoLog undo_log{tmeta.is_deleted_, {}, child_tuple, tmeta.ts_, undo_link.has_value() ? *undo_link : UndoLink{}};
+      tx_manager->UpdateUndoLink(child_rid, tx->AppendUndoLog(undo_log));
     }
 
     table_info_->table_->UpdateTupleInPlace(TupleMeta{tx->GetTransactionTempTs(), true}, child_tuple, child_rid);
